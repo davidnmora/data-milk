@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Milk</title>
+    <link rel="icon" href="public/favicon_io/favicon.ico" />
+    <meta name="twitter:creator" content="@davidnmora" />
+    <meta
+            name="Data MIlk"
+            content="Stories with (and about) data vis and coding"
+    />
+
+    <link href="https://fonts.googleapis.com/css2?family=Karla&family=Roboto:wght@700&display=swap" rel="stylesheet">
+
+    <script src="https://unpkg.com/flubber@0.3.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/6.2.0/d3.min.js" integrity="sha512-C2RveGuPIWqkaLAluvoxyiaN1XYNe5ss11urhZWZYBUA9Ydgj+hfGKPcxCzTwut1/fmjEZR7Ac35f2aycT8Ogw==" crossorigin="anonymous"></script>
+</head>
+
+
+<body>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background: #393939;
+        background: linear-gradient(3deg, rgb(36, 27, 27) 0%, rgb(47, 47, 47) 13%, #393939 100%);
+        height: 100vh;
+        width: 100vw;
+    }
+
+    .page-container {
+        padding-top: 96px;
+    }
+
+    .main-content-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        opacity: 0; /* gets animated to 1 */
+        align-items: center;
+        margin-top: 120px;
+        padding: 36px;
+    }
+
+    .headline {
+        font-size: 120px;
+        padding: 24px;
+        /*color: #84e6e1;*/
+        color: #F0F0F0;
+        font-family: 'Roboto', sans-serif;
+        text-shadow: 50px 50px 300px #ffffff;
+    }
+
+    .subtext {
+        font-size: 18px;
+        margin-top: -10px;
+        color: #F0F0F0;
+        font-family: 'Karla', sans-serif;
+    }
+</style>
+<div class="page-container">
+    <div style="display: flex; justify-content: center; padding-top: 36px;">
+        <div id="svg-container"></div>
+    </div>
+    <div class="main-content-container">
+        <div class="headline">data milk</div>
+        <p class="subtext">
+            Telling stories with (and about) data visualization & coding.
+        </p>
+    </div>
+</div>
+
+<script>
+    // Constants
+    const milkBottleInfo = {
+        width: 100,
+        height: 300,
+        d:
+            "M74.9913 23.3778C75.9705 10.353 80.2138 0 80.2138 0H19.1762C19.1762 0 23.4195 6.3454 24.7251 23.3778C26.0307 40.4102 19.1762 52.767 14.2802 57.1086C9.38411 61.4502 2.85603 68.4636 1.22401 72.4712C-0.408012 76.4788 -0.407994 251.478 1.22401 272.852C2.85601 294.226 43.6565 300.906 52.7958 299.904C61.9352 298.902 95.8812 294.894 98.4924 272.852C101.104 250.81 99.798 76.1449 98.4924 72.4712C97.1867 68.7975 91.9643 63.1201 86.089 57.1086C80.2138 51.0972 74.0121 36.4026 74.9913 23.3778Z"
+    };
+    const strawPivot = { x: 70, y: 30 };
+    const strawEndpoint = 300;
+    const strawCoords = [
+        [0, 0],
+        [strawPivot.x, strawPivot.y],
+        [strawPivot.x, strawEndpoint],
+        [strawPivot.x, strawPivot.y],
+        [0, 0.1]
+    ];
+    const SCALE_FACTOR = 0.4;
+    const bbWidth = 100;
+    const bbHeight = 300;
+    const COLORS = {
+        purple: '#AE71DF',
+        gold: '#EFCE59'
+    };
+
+    const introAnimation = (
+        selectedElement,
+        tweenFn,
+        reduceFactor = 0.05,
+        duration = 900
+    ) => {
+        const expandFullyAndPresentPage = () => {
+            const currD = selectedElement.attr('d');
+            selectedElement
+                .transition()
+                .duration(duration)
+                .attrTween('d', () => flubber.interpolate(currD, tweenFn(1)))
+                .on('end', () => {
+                    d3.select('.main-content-container')
+                        .transition()
+                        .duration(900)
+                        .style('opacity', 1);
+                });
+        };
+
+        selectedElement
+            .transition()
+            .duration(duration)
+            .ease(d3.easeBackInOut)
+            .style('opacity', 1)
+            .attrTween('d', () => progress => tweenFn(reduceFactor * progress))
+            .on('end', () => {
+                selectedElement
+                    .transition()
+                    .delay(250 * Math.random())
+                    .duration(duration)
+                    .attrTween('d', () => progress =>
+                        tweenFn(reduceFactor * (1 - progress))
+                    )
+                    .on('end', () => expandFullyAndPresentPage());
+            });
+    };
+
+    // Actual SVG elements:
+
+    const svg = d3.select('#svg-container')
+        .append("svg")
+        .attr(
+            "viewBox",
+            `${bbWidth / 2} 0 ${SCALE_FACTOR * bbWidth} ${SCALE_FACTOR * bbHeight}`
+        )
+        .style('padding', '24px')
+        .style('overflow', 'visible');
+
+    const bottleAndStrawsGroup = svg
+        .append('g')
+        .attr('transform', 'translate(-10 -40)');
+
+    const milkBottleTweenFn = flubber.fromCircle(100, 100, 10, milkBottleInfo.d);
+    const milkBottle = bottleAndStrawsGroup
+        .append('path')
+        .attr('class', 'milk-bottle')
+        .attr('transform', 'translate(10 40)')
+        .attr('fill', '#fff')
+        .style('opacity', 0)
+        .attr('stroke-width', '8px');
+    introAnimation(milkBottle, milkBottleTweenFn);
+
+    const STRAW_STROKE = 8;
+    const straw1TweenFn = flubber.fromCircle(100, 100, 10, strawCoords);
+    const straw1 = bottleAndStrawsGroup
+        .append('path')
+        .attr('fill', COLORS.purple)
+        .attr('opacity', 0)
+        .attr('stroke', COLORS.purple)
+        .attr('stroke-width', STRAW_STROKE);
+    introAnimation(straw1, straw1TweenFn);
+
+    const straw2TweenFn = flubber.fromCircle(10, 10, 10, strawCoords);
+    const straw2 = bottleAndStrawsGroup
+        .append('path')
+        .attr('transform', 'translate(120 10) scale(-1,1)')
+        .attr('fill', COLORS.gold)
+        .attr('opacity', 0)
+        .attr('stroke', COLORS.gold)
+        .attr('stroke-width', STRAW_STROKE);
+    introAnimation(straw2, straw2TweenFn);
+</script>
+</body>
+</html>
